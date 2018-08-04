@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>QuadFluid</title>
+    <link rel="stylesheet" type="text/css" href="index.css">
+</head>
+
+<script src="https://pixijs.download/release/pixi.min.js"></script>
+<script src="../src/mathutil.js"></script>
+<script src="../src/fluidsim.js"></script>
+
+<body>
+    <h1>Lattice Boltzmann Fluid Simulation</h1>
+    <span class="control-text">L-click:</span> add/remove obstacles<br>
+    <span class="control-text">R-click:</span> push fluid<br>
+    <br>
+
+    <div class="flex-container">
+        <div class="column">
+            <div class="slide-container">
+                <div>
+                    <label for="omega-range" id="omega-label">Viscosity (1.00)</label>
+                </div>
+                <input type="range" min="0.5" max="1.8" step="any" value="1" class="slider" id="omega-range">
+            </div>
+        </div>
+        <div class="column">
+            <div class="slide-container">
+                <div>
+                    <label for="size-range" id="size-label">Size (50x50)</label>
+                </div>
+                <input type="range" min="30" max="126" step="1" value="50" class="slider" id="size-range">
+            </div>
+        </div>
+    </div>
+
+    <div class="renderer" id="renderer"></div>
+    <div>
+        <span id="simulationTime">waiting</span>
+    </div>
+
+    <script type="text/javascript">
+        let type = PIXI.utils.isWebGLSupported() ? "WebGL" : "canvas";
+        PIXI.utils.sayHello(type);
+
+        let app = new PIXI.Application({
+            width: 800,
+            height: 800,
+            antialias: true
+        });
+        document.getElementById("renderer").appendChild(app.view);
+
+        app.renderer.view.style.position = "relative";
+        app.renderer.view.style.display = "block";
+        app.renderer.autoresize = true;
+
+        // Prevent context menu on right-click
+        document.getElementById("renderer").addEventListener("contextmenu", function (event) { event.preventDefault() });
+    </script>
+    <script src="../src/main.js"></script>
+</body>
+
+</html>
