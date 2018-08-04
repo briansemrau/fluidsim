@@ -70,11 +70,11 @@ function setup() {
         this.mPos = {x: pos.x, y: pos.y};
     });
     this.fluidGraphics.on('pointerdown', (e) => {
-        if (e.data.buttons === 1) {
+        if (e.data.buttons === 2) {
             let mx = Math.floor(this.mPos.x / this.gridscale);
             let my = Math.floor(this.mPos.y / this.gridscale);
             this.drawmode = this.fluidGrid.bound[this.fluidGrid.i(mx, my)] === false ? 1 : 2;
-        } else if (e.data.buttons === 2) {
+        } else if (e.data.buttons === 1) {
             this.drawmode = 3;
         }
     });
