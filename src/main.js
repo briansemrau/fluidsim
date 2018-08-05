@@ -63,7 +63,7 @@ function setup() {
     this.mPosPrev = new PIXI.Point(0, 0);
 
     this.fluidGraphics.interactive = true;
-    this.fluidGraphics.on('pointermove', (e) => {
+    let trackPosition = (e) => {
         let pos = e.data.getLocalPosition(this.fluidGraphics);
         let w = 0.9;
         this.mPosPrev = {
@@ -71,8 +71,8 @@ function setup() {
             y: this.mPosPrev.y * (1 - w) + this.mPos.y * w
         };
         this.mPos = {x: pos.x, y: pos.y};
-    });
-    this.fluidGraphics.on('pointerdown', (e) => {
+    };
+    let updateDrawmode = (e) => {
         if (e.data.buttons === 2) {
             let mx = Math.floor(this.mPos.x / this.gridscale);
             let my = Math.floor(this.mPos.y / this.gridscale);
@@ -80,13 +80,12 @@ function setup() {
         } else if (e.data.buttons === 1) {
             this.drawmode = 3;
         }
-    });
-    this.fluidGraphics.on('pointerup', () => {
-        this.drawmode = 0;
-    });
-    this.fluidGraphics.on('pointerupoutside', () => {
-        this.drawmode = 0;
-    });
+    };
+    this.fluidGraphics.on('pointermove', trackPosition);
+    this.fluidGraphics.on('pointerdown', trackPosition);
+    this.fluidGraphics.on('pointerdown', updateDrawmode);
+    this.fluidGraphics.on('pointerup', () => { this.drawmode = 0; });
+    this.fluidGraphics.on('pointerupoutside', () => { this.drawmode = 0; });
 }
 
 let frame = 0;
