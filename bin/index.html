@@ -55,6 +55,8 @@
         let type = PIXI.utils.isWebGLSupported() ? "WebGL" : "canvas";
         PIXI.utils.sayHello(type);
 
+        PIXI.settings.RESOLUTION = window.devicePixelRatio;
+
         let app = new PIXI.Application({
             width: 100,//document.getElementById("renderer").clientWidth,
             height: 100,//document.getElementById("renderer").clientHeight,
