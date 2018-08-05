@@ -1,14 +1,94 @@
-.slide-container {
+html,
+body {
+    height: 100%;
+    margin: 0;
+    text-align: center;
+    overflow: hidden;
+    color: white;
+    background-color: black;
+    font-family: "Open Sans", Arial, x-locale-body, sans-serif;
+}
+
+h1 {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+a:link {
+    color: #00FFFF;
+}
+
+a:visited {
+    color: #AA6EDF;
+}
+
+a:hover {
+    color: #00DDDD;
+    text-decoration: underline;
+}
+
+a:active {
+    color: #AA6EDF;
+    text-decoration: underline;
+}
+
+.vertical-box {
+    height: 100%;
+    display: flex;
+    flex-flow: column;
+    flex-direction: column;
+}
+
+.vertical-box .row {
+}
+
+.vertical-box .row.header {
+    flex-grow: 0;
+    flex-shrink: 1;
+    flex-basis: auto;
+}
+
+.vertical-box .row.content {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: auto;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.vertical-box .row.footer {
+    flex-grow: 0;
+    flex-shrink: 1;
+}
+
+.horizontal-box {
     width: 100%;
+
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+}
+
+.slider-box {
+    padding-left: 10px;
+    padding-right: 10px;
+    display: block;
+
+    flex-grow: 1;
+    min-width: 250px;
+    max-width: 350px;
 }
 
 .slider {
     -webkit-appearance: none;
     appearance: none;
     alignment: center;
-    width: 250px;
-    height: 15px;
-    border-radius: 5px;
+    width: 100%;
+    flex-grow: 1;
+    height: 10px;
+    border-radius: 3px;
     outline: none;
     opacity: 0.7;
     -webkit-transition: 0.2s;
@@ -41,40 +121,23 @@
     color: orange;
 }
 
-body {
-    padding: 10pt;
-    margin: auto;
-    text-align: center;
-    overflow: hidden;
-    color: white;
-    background-color: black;
-    font-family: "Open Sans", Arial, x-locale-body, sans-serif;
-}
+.render-wrapper {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: auto;
 
-.flex-container {
-    height: 100%;
-    padding: 0;
-    margin: 0;
-    display: -webkit-box;
-    display: -moz-box;
-    display: -ms-flexbox;
-    display: -webkit-flex;
+    margin-left: 2vw;
+    margin-right: 2vw;
+    margin-top: 10px;
+    max-height: 96vw;
+    /*border: 1px dotted red;*/
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-}
-
-@media screen and (max-width: 600px) {
-    .column {
-        flex: 50%;
-        padding: 10px;
-    }
 }
 
 .renderer {
-    padding: 10pt;
-    margin: auto;
     width: fit-content;
     height: fit-content;
-    alignment: center;
+    /*border: 1px dotted blue;*/
 }

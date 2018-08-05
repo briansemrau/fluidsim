@@ -9,13 +9,13 @@ function setup() {
     // let sprite = new Sprite(resources["images/some_image.png"].texture);
     // app.stage.addChild(sprite);
 
-    this.fluidGrid = new FluidSim(50, 50);
+    this.fluidGrid = new FluidSim(30, 30);
 
     this.simulationTime = [];
 
     this.deltaU = 0.000000001;
     this.colorscale = 1 / this.deltaU;
-    this.vectorscale = this.colorscale * 5;
+    this.vectorscale = this.colorscale * 1;
 
     this.fluidGraphics = new PIXI.Graphics();
     this.fluidGraphics.scale.y = -1;
@@ -23,12 +23,15 @@ function setup() {
 
     // Center renderer on resize
     let resize = () => {
-        let width = 600;//document.getElementById("renderer").clientWidth;
-        let height = 600;//document.getElementById("renderer").clientHeight;
-        let lesser = Math.min(width, height);
+        let width = document.getElementById("render-wrapper").clientWidth;
+        let height = document.getElementById("render-wrapper").clientHeight;
+        let lesser = Math.max(Math.min(width, height), 1);
         app.renderer.resize(lesser, lesser);
-        app.renderer.view.style.left = ((width - app.renderer.width) >> 1) + 'px';
-        app.renderer.view.style.top = ((width - app.renderer.height) >> 1) + 'px';
+        // document.getElementById("render-wrapper").style.width = "" + lesser + "px";
+        // document.getElementById("renderer").style.height = "" + lesser + "px";
+        // app.renderer.view.style.left = ((width - app.renderer.width) >> 1) + 'px';
+        // app.renderer.view.style.top = ((height - app.renderer.height) >> 1) + 'px';
+        console.log(width + ", " + height);
 
         this.gridscale = lesser / Math.max(this.fluidGrid.width + 2, this.fluidGrid.height + 2);
         this.fluidGraphics.x = this.gridscale;
@@ -47,7 +50,7 @@ function setup() {
     };
     document.getElementById("size-range").oninput = () => {
         let value = document.getElementById("size-range").value;
-        document.getElementById("size-label").innerText = "Size (" + value + "x" + value + ")";
+        document.getElementById("size-label").innerText = "Grid size (" + value + "x" + value + ")";
         this.fluidGrid = new FluidSim(Number(value), Number(value));
         resize();
     };
@@ -113,7 +116,7 @@ function update() {
 
     if (frame % 60 === 0 || sum(this.simulationTime) > 1000) {
         let ms = avg(this.simulationTime);
-        document.getElementById("simulationTime").innerText = "" + ms.toFixed(1) + " ms (" + (1000 / ms).toFixed(0) + " fps)";
+        document.getElementById("simulationTime").innerText = "" + ms.toFixed(1) + " ms (" + (1000 / ms).toFixed(0) + " ups)";
         this.simulationTime = [];
     }
     frame = frame + 1;

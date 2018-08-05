@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>LBM Fluid Sim</title>
     <link rel="stylesheet" type="text/css" href="index.css">
 </head>
@@ -12,33 +13,42 @@
 <script src="../src/fluidsim.js"></script>
 
 <body>
-    <h1>Lattice Boltzmann Fluid Simulation</h1>
-    <span class="control-text">L-click:</span> push fluid<br>
-    <span class="control-text">R-click:</span> add/remove obstacles<br>
-    <br>
-
-    <div class="flex-container">
-        <div class="column">
-            <div class="slide-container">
-                <div>
-                    <label for="omega-range" id="omega-label">Viscosity (1.00)</label>
-                </div>
-                <input type="range" min="0.5" max="1.8" step="any" value="1" class="slider" id="omega-range">
+    <div class="vertical-box">
+        <div class="row header"><h1>Lattice Boltzmann Fluid Simulation</h1></div>
+        <div class="row header">
+            <div class="horizontal-box">
+                <div style="margin-right: 25px"><span class="control-text">L-click:</span> push fluid</div>
+                <div><span class="control-text">R-click:</span> add/remove obstacles</div>
             </div>
         </div>
-        <div class="column">
-            <div class="slide-container">
-                <div>
-                    <label for="size-range" id="size-label">Size (50x50)</label>
+        <div class="row header">
+            <div class="horizontal-box">
+                <div class="slider-box">
+                    <div><label for="omega-range" id="omega-label">Viscosity (1.00)</label></div>
+                    <div><input type="range" min="0.5" max="1.8" step="0.05" value="1" class="slider" id="omega-range">
+                    </div>
                 </div>
-                <input type="range" min="30" max="126" step="1" value="50" class="slider" id="size-range">
+                <div class="slider-box">
+                    <div><label for="size-range" id="size-label">Grid size (30x30)</label></div>
+                    <div><input type="range" min="30" max="126" step="1" value="30" class="slider" id="size-range">
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-
-    <div class="renderer" id="renderer"></div>
-    <div>
-        <span id="simulationTime">waiting</span>
+        <div class="row content" id="row content">
+            <div class="render-wrapper" id="render-wrapper">
+                <div class="renderer" id="renderer"></div>
+            </div>
+            <div>
+                <span id="simulationTime">waiting</span>
+            </div>
+        </div>
+        <div class="row footer">
+            <small>
+                Brian Semrau (2018). MIT License.<br>
+                <a href="https://github.com/briansemrau/fluidsim">Github repository</a>
+            </small>
+        </div>
     </div>
 
     <script type="text/javascript">
@@ -46,8 +56,8 @@
         PIXI.utils.sayHello(type);
 
         let app = new PIXI.Application({
-            width: 800,
-            height: 800,
+            width: 100,//document.getElementById("renderer").clientWidth,
+            height: 100,//document.getElementById("renderer").clientHeight,
             antialias: true
         });
         document.getElementById("renderer").appendChild(app.view);
