@@ -1,7 +1,7 @@
 # Lattice Boltzmann Fluid Simulator
 
 An interactive simulation using the Lattice Boltzmann method in Javascript.
-[Play with the simulation!](https://github.com/briansemrau/fluidsim/bin)
+[Play with the simulation!](https://briansemrau.github.io/fluidsim/bin)
 
 ### Future Plans
 
