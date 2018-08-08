@@ -1,100 +1,235 @@
 // fluidsim.js
 
-function FluidSim(width, height) {
+// Lots of credit to this code can be given to Dan Schroeder (http://physics.weber.edu/schroeder/fluids/)
+
+function FluidSim(width, height, viscosity, density = 1) {
+
     this.width = width;
     this.height = height;
 
-    // Cells
-    this.f = new Array((width + 2) * (height + 2)).fill(0).map(() => { return new Array(9).fill(1. / 9.) });
-    this.f_next = new Array((width + 2) * (height + 2)).fill(0).map(() => { return new Array(9) });
-    this.bound = new Array((width + 2) * (height + 2)).fill(false);
+    const df = new Float32Array(width * height * 9).fill(density / 9.0);
+    const rho = new Float32Array(width * height).fill(0);
+    const ux = new Float32Array(width * height).fill(0);
+    const uy = new Float32Array(width * height).fill(0);
+    const obst = new Int8Array(width * height).fill(0);
 
-    // add walls
-    for (let x = -1; x < width + 1; x++) {
-        this.bound[this.i(x, -1)] = true;
-        this.bound[this.i(x, height)] = true;
-    }
-    for (let y = -1; y < height + 1; y++) {
-        this.bound[this.i(-1, y)] = true;
-        this.bound[this.i(width, y)] = true;
-    }
+    // Give public access to distribution functions
+    this.df = df;
 
-    // Lattice velocities
-    this.lv = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1], [0, 0]];
-    // Lattice velocity index offsets
-    this.lv_offset = this.lv.map((v) => { return v[0] + v[1] * (width + 2) });
-    // Lattice weights
-    this.lv_w = [1. / 9., 1. / 36., 1. / 9., 1. / 36., 1. / 9., 1. / 36., 1. / 9., 1. / 36., 4. / 9.];
-
-    // Speed of sound (c_s^2)
-    this.c_sqr = 1. / 3.;
-
-    // Viscosity  (range: (0, 2))
-    this.omega = 1.0;
-
-    // Debug drawing
-    this.rho = new Array((width + 2) * (height + 2)).fill(0);
-    this.u = new Array((width + 2) * (height + 2)).map(() => { return new Array(2).fill(0) });
-}
-
-FluidSim.prototype.i = function (x, y) {
-    return (x + 1) + (y + 1) * (this.width + 2);
-};
-
-FluidSim.prototype.simulate = function () {
-    if (this.paused) return;
-
-    // Local references for improved readability
-    let width = this.width;
-    let height = this.height;
-    let f = this.f;
-    let f_next = this.f_next;
-    let bound = this.bound;
-    let lv = this.lv;
-    let lv_offset = this.lv_offset;
-    let lv_w = this.lv_w;
-    let omega = this.omega;
-
-
-    // ########################
-    // Lattice Boltzmann Method
-    // ########################
-
+    // Fill border with obstacles
     for (let x = 0; x < width; x++) {
-        for (let y = 0; y < height; y++) {
-            let xy = this.i(x, y);
-
-            if (bound[xy])
-                continue;
-
-            // Stream distribution functions from adjacent cells
-            // Use bounce-back rule for obstacles
-            let f_s = lv_offset.map((e_i, i) => {
-                if (bound[xy - e_i]) return f[xy][(i + 4) % 8];
-                else return f[xy - e_i][i];
-            });
-
-            // Calculate density of the cell
-            let rho = sum(f_s);
-
-            // Calculate fluid velocity of the cell
-            let u = lv.reduce((sum, lv, i) => { return sum.map((value, n) => { return value + lv[n] * f_s[i] }) }, [0, 0]);
-
-            // TODO: gravity
-
-            // Calculate the equilibrium distribution
-            let f_eq = lv_w.map((w_i, i) => { return w_i * rho * (1 + dot(u, lv[i]) / this.c_sqr + 0.5 * pow2(dot(u, lv[i])) - dot(u, u) / (2 * this.c_sqr)) });
-
-            // Relax towards equilibrium state based on viscosity
-            f_next[xy] = f_s.map((f_s_i, i) => { return f_s_i - omega * (f_s_i - f_eq[i]) });
-
-            // Store values for drawing
-            this.rho[xy] = rho;
-            this.u[xy] = u;
-        }
+        obst[x] = 1;
+        obst[x + (height - 1) * width] = 1;
+    }
+    for (let y = 0; y < height; y++) {
+        obst[y * width] = 1;
+        obst[width - 1 + y * width] = 1;
     }
 
-    // Update current state
-    this.f = f_next.map((dfs) => { return dfs.map((v) => {return v}) });
+    const four9th = 4.0 / 9.0;
+    const one9th = 1.0 / 9.0;
+    const one36th = 1.0 / 36.0;
 
-};
+    const collide = function () {
+        let omega = 1.0 / (3.0 * viscosity + 0.5);
+        for (let y = 1; y < height - 1; y++) {
+            let yw = y * width;
+            for (let x = 1; x < width - 1; x++) {
+                let i = x + yw;
+                let i9 = i * 9;
+
+                let thisrho = df[i9] + df[i9 + 1] + df[i9 + 2] + df[i9 + 3] + df[i9 + 4] + df[i9 + 5] + df[i9 + 6] + df[i9 + 7] + df[i9 + 8];
+                let thisux = df[i9 + 1] + df[i9 + 2] + df[i9 + 8] - df[i9 + 4] - df[i9 + 5] - df[i9 + 6];
+                let thisuy = df[i9 + 2] + df[i9 + 3] + df[i9 + 4] - df[i9 + 6] - df[i9 + 7] - df[i9 + 8];
+                rho[i] = thisrho;
+                ux[i] = thisux;
+                uy[i] = thisuy;
+
+                let one9thrho = one9th * thisrho;
+                let one36thrho = one36th * thisrho;
+                let ux3 = 3 * thisux;
+                let uy3 = 3 * thisuy;
+                let ux2 = thisux * thisux;
+                let uy2 = thisuy * thisuy;
+                let uxuy2 = 2 * thisux * thisuy;
+                let u2 = ux2 + uy2;
+                let u215 = 1.5 * u2;
+
+                df[i9] += omega * (four9th * thisrho * (1 - u215) - df[i9]);
+                df[i9 + 1] += omega * (one9thrho * (1 + ux3 + 4.5 * ux2 - u215) - df[i9 + 1]);
+                df[i9 + 5] += omega * (one9thrho * (1 - ux3 + 4.5 * ux2 - u215) - df[i9 + 5]);
+                df[i9 + 3] += omega * (one9thrho * (1 + uy3 + 4.5 * uy2 - u215) - df[i9 + 3]);
+                df[i9 + 7] += omega * (one9thrho * (1 - uy3 + 4.5 * uy2 - u215) - df[i9 + 7]);
+                df[i9 + 2] += omega * (one36thrho * (1 + ux3 + uy3 + 4.5 * (u2 + uxuy2)) - df[i9 + 2]);
+                df[i9 + 8] += omega * (one36thrho * (1 + ux3 - uy3 + 4.5 * (u2 - uxuy2)) - df[i9 + 8]);
+                df[i9 + 4] += omega * (one36thrho * (1 - ux3 + uy3 + 4.5 * (u2 - uxuy2)) - df[i9 + 4]);
+                df[i9 + 6] += omega * (one36thrho * (1 - ux3 - uy3 + 4.5 * (u2 + uxuy2)) - df[i9 + 6]);
+            }
+        }
+    };
+
+    const stream = function () {
+        // TODO: reduce multiplications for  s p e e d
+        for (let y = height - 1; y > 0; y--) {
+            for (let x = 0; x < width - 1; x++) {
+                df[(x + y * width) * 9 + 3] = df[(x + (y - 1) * width) * 9 + 3];
+                df[(x + y * width) * 9 + 4] = df[(x + 1 + (y - 1) * width) * 9 + 4];
+            }
+        }
+        for (let y = height - 1; y > 0; y--) {
+            for (let x = width - 1; x > 0; x--) {
+                df[(x + y * width) * 9 + 1] = df[(x - 1 + y * width) * 9 + 1];
+                df[(x + y * width) * 9 + 2] = df[(x - 1 + (y - 1) * width) * 9 + 2];
+            }
+        }
+        for (let y = 0; y < height - 1; y++) {
+            for (let x = width - 1; x > 0; x--) {
+                df[(x + y * width) * 9 + 7] = df[(x + (y + 1) * width) * 9 + 7];
+                df[(x + y * width) * 9 + 8] = df[(x - 1 + (y + 1) * width) * 9 + 8];
+            }
+        }
+        for (let y = 0; y < height - 1; y++) {
+            for (let x = 0; x < width - 1; x++) {
+                df[(x + y * width) * 9 + 5] = df[(x + 1 + y * width) * 9 + 5];
+                df[(x + y * width) * 9 + 6] = df[(x + 1 + (y + 1) * width) * 9 + 6];
+            }
+        }
+    };
+
+    const bounce = function () {
+        let width9 = width * 9;
+        for (let y = 1; y < height - 1; y++) {
+            let yw = y * width;
+            for (let x = 1; x < width - 1; x++) {
+                // TODO implement moving obstacles
+                if (obst[x + yw] !== 0) {
+                    let i9 = (x + yw) * 9;
+                    df[i9 + 9 + 1] = df[i9 + 5];
+                    df[i9 - 9 + 5] = df[i9 + 1];
+                    df[i9 + width9 + 3] = df[i9 + 7];
+                    df[i9 - width9 + 7] = df[i9 + 3];
+                    df[i9 + 9 + width9 + 2] = df[i9 + 6];
+                    df[i9 - 9 + width9 + 4] = df[i9 + 8];
+                    df[i9 + 9 - width9 + 8] = df[i9 + 4];
+                    df[i9 - 9 - width9 + 6] = df[i9 + 2];
+                }
+            }
+        }
+        for (let y = 1; y < height - 1; y++) {
+            let yw = y * width;
+            let x = 0;
+            if (obst[x + yw] !== 0) {
+                let i9 = (x + yw) * 9;
+                df[i9 + 9 + 1] = df[i9 + 5];
+                df[i9 + width9 + 3] = df[i9 + 7];
+                df[i9 - width9 + 7] = df[i9 + 3];
+                df[i9 + 9 + width9 + 2] = df[i9 + 6];
+                df[i9 + 9 - width9 + 8] = df[i9 + 4];
+            }
+            x = width - 1;
+            if (obst[x + yw] !== 0) {
+                let i9 = (x + yw) * 9;
+                df[i9 - 9 + 5] = df[i9 + 1];
+                df[i9 + width9 + 3] = df[i9 + 7];
+                df[i9 - width9 + 7] = df[i9 + 3];
+                df[i9 - 9 + width9 + 4] = df[i9 + 8];
+                df[i9 - 9 - width9 + 6] = df[i9 + 2];
+            }
+        }
+        for (let x = 1; x < width - 1; x++) {
+            let yw = 0 * width;
+            if (obst[x + yw] !== 0) {
+                let i9 = (x + yw) * 9;
+                df[i9 + 9 + 1] = df[i9 + 5];
+                df[i9 + width9 + 3] = df[i9 + 7];
+                df[i9 + 9 + width9 + 2] = df[i9 + 6];
+                df[i9 - 9 + width9 + 4] = df[i9 + 8];
+                df[i9 + 9 - width9 + 8] = df[i9 + 4];
+            }
+            yw = (height - 1) * width;
+            if (obst[x + yw] !== 0) {
+                let i9 = (x + yw) * 9;
+                df[i9 + 9 + 1] = df[i9 + 5];
+                df[i9 - 9 + 5] = df[i9 + 1];
+                df[i9 - width9 + 7] = df[i9 + 3];
+                df[i9 + 9 - width9 + 8] = df[i9 + 4];
+                df[i9 - 9 - width9 + 6] = df[i9 + 2];
+            }
+        }
+        // corners
+        let x = 0;
+        let yw = 0 * width;
+        if (obst[x + yw] !== 0) {
+            let i9 = (x + yw) * 9;
+            df[i9 + 9 + 1] = df[i9 + 5];
+            df[i9 + width9 + 3] = df[i9 + 7];
+            df[i9 + 9 + width9 + 2] = df[i9 + 6];
+        }
+        x = width - 1;
+        yw = 0;
+        if (obst[x + yw] !== 0) {
+            let i9 = (x + yw) * 9;
+            df[i9 - 9 + 5] = df[i9 + 1];
+            df[i9 + width9 + 3] = df[i9 + 7];
+            df[i9 - 9 + width9 + 4] = df[i9 + 8];
+        }
+        x = width - 1;
+        yw = (height - 1) * width;
+        if (obst[x + yw] !== 0) {
+            let i9 = (x + yw) * 9;
+            df[i9 - 9 + 5] = df[i9 + 1];
+            df[i9 - width9 + 7] = df[i9 + 3];
+            df[i9 - 9 - width9 + 6] = df[i9 + 2];
+        }
+        x = 0;
+        yw = (height - 1) * width;
+        if (obst[x + yw] !== 0) {
+            let i9 = (x + yw) * 9;
+            df[i9 + 9 + 1] = df[i9 + 5];
+            df[i9 - width9 + 7] = df[i9 + 3];
+            df[i9 + 9 - width9 + 8] = df[i9 + 4];
+        }
+    };
+
+    this.simulate = function (steps = 1) {
+        for (let step = 0; step < steps; step++) {
+            collide();
+            stream();
+            bounce();
+        }
+    };
+
+    this.rho = function (x, y) {
+        if (x < 0 || x > width - 1 || y < 0 || y > height - 1) return 0;
+        return rho[x + y * width];
+    };
+
+    this.u = function (x, y) {
+        if (x < 0 || x > width - 1 || y < 0 || y > height - 1) return 0;
+        return [ux[x + y * width], uy[x + y * width]];
+    };
+
+    this.curl = function (x, y) {
+        if (x < 1 || x > width - 2 || y < 1 || y > height - 2) return 0;
+        return uy[x + 1 + y * width] - uy[x - 1 + y * width] - ux[x + (y + 1) * width] + ux[x + (y - 1) * width];
+    };
+
+    this.obst = function (x, y) {
+        if (x < 0 || x > width - 1 || y < 0 || y > height - 1) return 0;
+        return obst[x + y * width];
+    };
+
+    this.setObst = function (x, y, value) {
+        if (x < 1 || x > width - 2 || y < 1 || y > height - 2) return;
+        return obst[x + y * width] = value;
+    };
+
+    this.viscosity = function () {
+        return viscosity;
+    };
+
+    this.setViscosity = function (value) {
+        viscosity = value;
+    };
+
+}

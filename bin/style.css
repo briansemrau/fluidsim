@@ -32,6 +32,52 @@ a:active {
     text-decoration: underline;
 }
 
+.radiogroup {
+    margin-bottom: 5px;
+    alignment: center;
+}
+
+.radiogroup input {
+    position: absolute;
+    clip: rect(0, 0, 0, 0);
+    height: 0;
+    width: 0;
+    overflow: hidden;
+}
+
+.radiogroup label {
+    /*float: left;*/
+}
+
+.radiogroup label {
+    display: inline-block;
+    width: 100px;
+    margin: 5px 5px 0 0;
+    padding: 2px;
+    background-color: black;
+    text-align: center;
+    border: 2px solid darkgreen;
+    transition: all 0.1s ease-in-out;
+}
+
+.radiogroup label:hover {
+    cursor: pointer;
+}
+
+.radiogroup input:checked + label {
+    background-color: green;
+}
+
+.radio-box {
+    padding-left: 10px;
+    padding-right: 10px;
+    display: block;
+
+    flex-grow: 1;
+    min-width: 250px;
+    max-width: 350px;
+}
+
 .vertical-box {
     height: 100%;
     display: flex;
