@@ -6,7 +6,8 @@ function setup() {
     let viscRange = document.getElementById("visc-range");
     this.fluidGrid = new FluidSim(Number(sizeRange.value), Number(sizeRange.value), Number(viscRange.value));
 
-    this.simulationTime = [];
+    this.simulationTime = new Int32Array(60);
+    this.renderTime = new Int32Array(60);
 
     this.deltaU = 0.0001;
     this.colorscale = 1 / this.deltaU;
@@ -51,12 +52,12 @@ function setup() {
     });
 
     // Slider controls
-    document.getElementById("visc-range").oninput = () => {
+    document.getElementById("visc-range").onclick = () => {
         let value = document.getElementById("visc-range").value;
         this.fluidGrid.setViscosity(Number(value));
         document.getElementById("visc-label").innerText = "Viscosity (" + parseFloat(value).toFixed(3) + ")";
     };
-    document.getElementById("size-range").oninput = () => {
+    document.getElementById("size-range").onclick = () => {
         let value = document.getElementById("size-range").value;
         document.getElementById("size-label").innerText = "Grid size (" + value + "x" + value + ")";
         this.fluidGrid = new FluidSim(Number(value), Number(value), this.fluidGrid.viscosity());
@@ -113,9 +114,8 @@ let frame = 0;
 let lv = [[0, 0], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
 
 function update() {
-    requestAnimationFrame(update);
-
     // User interaction
+
     let mx = Math.floor(this.mPos.x);
     let my = Math.floor(this.mPos.y);
     if (this.drawing && !(mx < 0 || mx >= this.fluidGrid.width || my < 0 || my >= this.fluidGrid.height)) {
@@ -133,18 +133,15 @@ function update() {
     }
 
     // Run simulation
+
     let startTime = new Date().getTime();
     this.fluidGrid.simulate(1);
-    let simulationTime = new Date().getTime() - startTime;
-    this.simulationTime.push(simulationTime);
+    this.simulationTime[frame % 60] = new Date().getTime() - startTime;
 
-    if (frame % 60 === 0 || sum(this.simulationTime) > 1000) {
-        let ms = avg(this.simulationTime);
-        document.getElementById("simulationTime").innerText = "" + ms.toFixed(1) + " ms (" + (1000. / ms).toFixed(0) + " ups)";
-        this.simulationTime = [];
-    }
-    frame = frame + 1;
+    // Draw graphics
 
+    startTime = new Date().getTime();
+    // Clear graphics
     this.fluidGraphics.clear();
 
     // Draw background
@@ -188,6 +185,17 @@ function update() {
         }
     }
 
+    this.renderTime[frame % 60] = new Date().getTime() - startTime;
+
+    if (frame % 60 === 0 || sum(this.simulationTime) > 1000) {
+        let simMS = avg(this.simulationTime);
+        let renMS = avg(this.renderTime);
+        document.getElementById("simulationTime").innerText = "" + simMS.toFixed(1) + " ms/" + renMS.toFixed(1) + "ms";
+    }
+    frame++;
+
+
+    requestAnimationFrame(update);
 }
 
 function rbg2hex(rgb) {
