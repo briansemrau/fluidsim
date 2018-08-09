@@ -3,25 +3,45 @@
 function setup() {
 
     let sizeRange = document.getElementById("size-range");
+    let sizeLabel = document.getElementById("size-label");
     let viscRange = document.getElementById("visc-range");
-    this.fluidGrid = new FluidSim(Number(sizeRange.value), Number(sizeRange.value), Number(viscRange.value));
+    let viscLabel = document.getElementById("visc-label");
+    let desktopControls = document.getElementById("desktopcontrols");
+    let mobileControls = document.getElementById("mobilecontrols");
+    let renderWrapper = document.getElementById("render-wrapper");
+
+    let mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
     this.simulationTime = new Int32Array(60);
     this.renderTime = new Int32Array(60);
+    this.frame = 0;
+    this.lastFrameTime = Date.now();
+    this.speedSound = 1 / 1; // (m/s) Assume simulation width = 1 meter
 
     this.deltaU = 0.0001;
-    this.colorscale = 1 / this.deltaU;
-    this.vectorscale = this.colorscale * 1;
-    this.rendermode = "density";
+    this.interactMode = document.querySelector('input[name="interactmode-radio"]:checked').value;
+    this.drawing = false;
+    this.mPos = new PIXI.Point(0, 0);
+    this.mPosPrev = new PIXI.Point(0, 0);
 
+    this.colorscale = 1.0 / this.deltaU;
+    this.rendermode = document.querySelector('input[name="rendermode-radio"]:checked').value;
+
+    this.fluidGrid = new FluidSim(Number(sizeRange.value), Number(sizeRange.value), Number(viscRange.value));
     this.fluidGraphics = new PIXI.Graphics();
-    this.fluidGraphics.scale.y = -1;
 
+    // Hide certain controls
+    if (mobile) {
+        desktopControls.style.display = "none";
+    } else {
+        mobileControls.style.display = "none";
+    }
 
     // Resize renderer on window resize
     let resize = () => {
-        let width = document.getElementById("render-wrapper").clientWidth;
-        let height = document.getElementById("render-wrapper").clientHeight;
+        let width = renderWrapper.clientWidth;
+        let height = renderWrapper.clientHeight;
+
         let lesser = Math.max(Math.min(width, height), 1);
         app.renderer.resize(lesser, lesser);
 
@@ -35,49 +55,33 @@ function setup() {
     window.addEventListener('resize', resize);
     window.addEventListener('fullscreen', resize);
 
-
-    let mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-    // Button controls
-    document.getElementsByName("drawmode-radio").forEach((element) => {
-        element.oninput = () => {
-            this.drawmode = Number(element.value);
+    // Radio button controls
+    document.getElementsByName("interactmode-radio").forEach((element) => {
+        element.onclick = element.ontouchstart = () => {
+            this.interactMode = element.value;
         }
     });
 
     document.getElementsByName("rendermode-radio").forEach((element) => {
-        element.oninput = () => {
+        element.onclick = element.ontouchstart = () => {
             this.rendermode = element.value;
         }
     });
 
     // Slider controls
-    document.getElementById("visc-range").onclick = () => {
-        let value = document.getElementById("visc-range").value;
+    viscRange.oninput = () => {
+        let value = viscRange.value;
         this.fluidGrid.setViscosity(Number(value));
-        document.getElementById("visc-label").innerText = "Viscosity (" + parseFloat(value).toFixed(3) + ")";
+        viscLabel.innerText = "Viscosity (" + parseFloat(value).toFixed(3) + ")";
     };
-    document.getElementById("size-range").onclick = () => {
-        let value = document.getElementById("size-range").value;
-        document.getElementById("size-label").innerText = "Grid size (" + value + "x" + value + ")";
+    sizeRange.oninput = () => {
+        let value = sizeRange.value;
+        sizeLabel.innerText = "Grid size (" + value + "x" + value + ")";
         this.fluidGrid = new FluidSim(Number(value), Number(value), this.fluidGrid.viscosity());
         resize();
     };
 
-    // Enable/disable mobile controls
-    if (mobile) {
-        document.getElementById("desktopcontrols").style.display = "none";
-    } else {
-        document.getElementById("mobilecontrols").style.display = "none";
-    }
-
-    app.stage.addChild(this.fluidGraphics);
-
-    this.drawmode = 3;
-    this.drawing = false;
-    this.mPos = new PIXI.Point(0, 0);
-    this.mPosPrev = new PIXI.Point(0, 0);
-
+    // Simulation interactivity
     this.fluidGraphics.interactive = true;
     let trackPosition = (e) => {
         let pos = e.data.getLocalPosition(this.fluidGraphics);
@@ -88,60 +92,80 @@ function setup() {
         };
         this.mPos = {x: pos.x, y: pos.y};
     };
-    let updateDrawmode = (e) => {
-        console.log(e.data.buttons);
+    let updateInteractMode = (e) => {
         if (e.data.buttons === 2) {
             let mx = Math.floor(this.mPos.x);
             let my = Math.floor(this.mPos.y);
-            this.drawmode = this.fluidGrid.obst(mx, my) === 0 ? 1 : 2;
+            this.interactMode = this.fluidGrid.obst(mx, my) === 0 ? "draw" : "erase";
             this.drawing = true;
         } else if (e.data.buttons === 1) {
-            this.drawmode = 3;
+            this.interactMode = "drag";
             this.drawing = true;
         }
     };
     this.fluidGraphics.on('pointermove', trackPosition);
     this.fluidGraphics.on('pointerdown', trackPosition);
     this.fluidGraphics.on('pointerdown', () => { this.drawing = true; });
-    this.fluidGraphics.on('mousedown', updateDrawmode);
-    this.fluidGraphics.on('rightdown', updateDrawmode);
+    this.fluidGraphics.on('mousedown', updateInteractMode);
+    this.fluidGraphics.on('rightdown', updateInteractMode);
     this.fluidGraphics.on('pointerup', () => { this.drawing = false; });
     this.fluidGraphics.on('pointerupoutside', () => { this.drawing = false; });
+
+    app.stage.addChild(this.fluidGraphics);
 }
 
-let frame = 0;
-
+// Lattice vectors
 let lv = [[0, 0], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
 
 function update() {
-    // User interaction
+    let now = Date.now();
+    let delta = now - this.lastFrameTime;
 
+    // User interaction
     let mx = Math.floor(this.mPos.x);
     let my = Math.floor(this.mPos.y);
     if (this.drawing && !(mx < 0 || mx >= this.fluidGrid.width || my < 0 || my >= this.fluidGrid.height)) {
-        if (this.drawmode === 1) {
-            this.fluidGrid.setObst(mx, my, 1);
-        }
-        else if (this.drawmode === 2) {
-            this.fluidGrid.setObst(mx, my, 0);
-        }
-        else if (this.drawmode === 3) {
-            let dr = scale(norm([this.mPos.x - this.mPosPrev.x, this.mPos.y - this.mPosPrev.y]), this.deltaU);
-            for (let i = 0; i < 9; i++)
-                this.fluidGrid.df[(mx + my * this.fluidGrid.width) * 9 + i] += dot(lv[i], dr);
+        switch (this.interactMode) {
+            case "draw":
+                this.fluidGrid.setObst(mx, my, 1);
+                break;
+            case "erase":
+                this.fluidGrid.setObst(mx, my, 0);
+                break;
+            case "drag":
+                let dr = scale(norm([this.mPos.x - this.mPosPrev.x, this.mPos.y - this.mPosPrev.y]), this.deltaU);
+                for (let i = 0; i < 9; i++)
+                    this.fluidGrid.df[(mx + my * this.fluidGrid.width) * 9 + i] += dot(lv[i], dr);
+                break;
+            default:
+                break;
         }
     }
 
     // Run simulation
-
-    let startTime = new Date().getTime();
+    let startTime = Date.now();
+    // let steps = Math.floor(); // TODO
     this.fluidGrid.simulate(1);
-    this.simulationTime[frame % 60] = new Date().getTime() - startTime;
+    this.simulationTime[this.frame % 60] = Date.now() - startTime;
 
     // Draw graphics
+    startTime = Date.now();
+    drawSimulation();
+    this.renderTime[this.frame % 60] = Date.now() - startTime;
 
-    startTime = new Date().getTime();
-    // Clear graphics
+    // Performance stats
+    if (this.frame % 60 === 0 || sum(this.simulationTime) > 1000) {
+        let simMS = avg(this.simulationTime);
+        let renMS = avg(this.renderTime);
+        document.getElementById("simulationTime").innerText = "" + simMS.toFixed(1) + " ms/" + renMS.toFixed(1) + "ms";
+    }
+    this.frame++;
+
+    // Request next frame
+    requestAnimationFrame(update);
+}
+
+function drawSimulation() {
     this.fluidGraphics.clear();
 
     // Draw background
@@ -178,30 +202,14 @@ function update() {
                 let value = getValue(x, y);
                 let bright = 0.9;
 
-                this.fluidGraphics.beginFill(rbg2hex([0, value * (1 + bright) + bright, -value * (1 + bright) + bright]));
+                let color = rbg2hex([0, value * (1 + bright) + bright, -value * (1 + bright) + bright]);
+                this.fluidGraphics.beginFill(color);
                 this.fluidGraphics.drawRect(x, y, 1, 1);
                 this.fluidGraphics.endFill();
             }
         }
     }
-
-    this.renderTime[frame % 60] = new Date().getTime() - startTime;
-
-    if (frame % 60 === 0 || sum(this.simulationTime) > 1000) {
-        let simMS = avg(this.simulationTime);
-        let renMS = avg(this.renderTime);
-        document.getElementById("simulationTime").innerText = "" + simMS.toFixed(1) + " ms/" + renMS.toFixed(1) + "ms";
-    }
-    frame++;
-
-
-    requestAnimationFrame(update);
 }
 
-function rbg2hex(rgb) {
-    return PIXI.utils.rgb2hex(rgb.map((value) => { return Math.max(Math.min(value, 1), 0) }));
-}
-
-console.log("Starting :)");
 setup();
 update();

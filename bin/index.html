@@ -10,7 +10,7 @@
 </head>
 
 <script src="../lib/pixi.min.js"></script>
-<script src="../src/mathutil.js"></script>
+<script src="../src/utils.js"></script>
 <script src="../src/fluidsim.js"></script>
 
 <body>
@@ -32,12 +32,12 @@
                     <div>Controls</div>
                     <div class="horizontal-box">
                         <div class="radiogroup">
-                            <input type="radio" id="drawmode1-button" name="drawmode-radio" value="1">
-                            <label for="drawmode1-button">Draw</label>
-                            <input type="radio" id="drawmode2-button" name="drawmode-radio" value="2">
-                            <label for="drawmode2-button">Erase</label>
-                            <input type="radio" id="drawmode3-button" name="drawmode-radio" value="3" checked>
-                            <label for="drawmode3-button">Drag fluid</label>
+                            <input type="radio" id="interactmode1-button" name="interactmode-radio" value="draw">
+                            <label for="interactmode1-button">Draw</label>
+                            <input type="radio" id="interactMode2-button" name="interactmode-radio" value="erase">
+                            <label for="interactmode2-button">Erase</label>
+                            <input type="radio" id="interactmode3-button" name="interactmode-radio" value="drag" checked>
+                            <label for="interactmode3-button">Drag fluid</label>
                         </div>
                     </div>
                 </div>
