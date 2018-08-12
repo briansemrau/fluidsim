@@ -33,8 +33,12 @@ a:active {
 }
 
 .radiogroup {
+    flex-grow: 1;
     margin-bottom: 5px;
     alignment: center;
+    display:flex;
+    flex-direction: row;
+    align-items: center;
 }
 
 .radiogroup input {
@@ -46,12 +50,10 @@ a:active {
 }
 
 .radiogroup label {
-    /*float: left;*/
-}
-
-.radiogroup label {
-    display: inline-block;
-    width: 100px;
+    display: block;
+    flex-grow: 1;
+    min-width: 75px;
+    max-width: 125px;
     margin: 5px 5px 0 0;
     padding: 2px;
     background-color: black;

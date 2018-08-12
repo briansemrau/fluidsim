@@ -69,29 +69,37 @@ function FluidSim(width, height, viscosity, density = 1) {
     };
 
     const stream = function () {
-        // TODO: reduce multiplications for  s p e e d
+        let width9 = width * 9;
         for (let y = height - 1; y > 0; y--) {
+            let yw = y * width;
             for (let x = 0; x < width - 1; x++) {
-                df[(x + y * width) * 9 + 3] = df[(x + (y - 1) * width) * 9 + 3];
-                df[(x + y * width) * 9 + 4] = df[(x + 1 + (y - 1) * width) * 9 + 4];
+                let i9 = (x + yw) * 9;
+                df[i9 + 3] = df[i9 - width9 + 3]; // y-1
+                df[i9 + 4] = df[i9 + 9 - width9 + 4]; // x+1 y-1
             }
         }
         for (let y = height - 1; y > 0; y--) {
+            let yw = y * width;
             for (let x = width - 1; x > 0; x--) {
-                df[(x + y * width) * 9 + 1] = df[(x - 1 + y * width) * 9 + 1];
-                df[(x + y * width) * 9 + 2] = df[(x - 1 + (y - 1) * width) * 9 + 2];
+                let i9 = (x + yw) * 9;
+                df[i9 + 1] = df[i9 - 9 + 1]; // x-1
+                df[i9 + 2] = df[i9 - 9 - width9 + 2]; // x-1 y-1
             }
         }
         for (let y = 0; y < height - 1; y++) {
+            let yw = y * width;
             for (let x = width - 1; x > 0; x--) {
-                df[(x + y * width) * 9 + 7] = df[(x + (y + 1) * width) * 9 + 7];
-                df[(x + y * width) * 9 + 8] = df[(x - 1 + (y + 1) * width) * 9 + 8];
+                let i9 = (x + yw) * 9;
+                df[i9 + 7] = df[i9 + width9 + 7]; // y+1
+                df[i9 + 8] = df[i9 - 9 + width9 + 8]; // x-1 y+1
             }
         }
         for (let y = 0; y < height - 1; y++) {
+            let yw = y * width;
             for (let x = 0; x < width - 1; x++) {
-                df[(x + y * width) * 9 + 5] = df[(x + 1 + y * width) * 9 + 5];
-                df[(x + y * width) * 9 + 6] = df[(x + 1 + (y + 1) * width) * 9 + 6];
+                let i9 = (x + yw) * 9;
+                df[i9 + 5] = df[i9 + 9 + 5]; // x+1
+                df[i9 + 6] = df[i9 + 9 + width9 + 6]; // x+1 y+1
             }
         }
     };
@@ -137,7 +145,7 @@ function FluidSim(width, height, viscosity, density = 1) {
             }
         }
         for (let x = 1; x < width - 1; x++) {
-            let yw = 0 * width;
+            let yw = 0;
             if (obst[x + yw] !== 0) {
                 let i9 = (x + yw) * 9;
                 df[i9 + 9 + 1] = df[i9 + 5];
@@ -158,7 +166,7 @@ function FluidSim(width, height, viscosity, density = 1) {
         }
         // corners
         let x = 0;
-        let yw = 0 * width;
+        let yw = 0;
         if (obst[x + yw] !== 0) {
             let i9 = (x + yw) * 9;
             df[i9 + 9 + 1] = df[i9 + 5];

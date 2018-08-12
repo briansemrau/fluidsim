@@ -16,7 +16,8 @@ function setup() {
     this.renderTime = new Int32Array(60);
     this.frame = 0;
     this.lastFrameTime = Date.now();
-    this.speedSound = 1 / 1; // (m/s) Assume simulation width = 1 meter
+    this.stepsToSimulate = 0;
+    this.speedSound = 2; // (m/s) Assume simulation width = 1 meter
 
     this.deltaU = 0.0001;
     this.interactMode = document.querySelector('input[name="interactmode-radio"]:checked').value;
@@ -26,6 +27,7 @@ function setup() {
 
     this.colorscale = 1.0 / this.deltaU;
     this.rendermode = document.querySelector('input[name="rendermode-radio"]:checked').value;
+
 
     this.fluidGrid = new FluidSim(Number(sizeRange.value), Number(sizeRange.value), Number(viscRange.value));
     this.fluidGraphics = new PIXI.Graphics();
@@ -85,11 +87,6 @@ function setup() {
     this.fluidGraphics.interactive = true;
     let trackPosition = (e) => {
         let pos = e.data.getLocalPosition(this.fluidGraphics);
-        let w = 0.1;
-        this.mPosPrev = {
-            x: this.mPosPrev.x * (1 - w) + this.mPos.x * w,
-            y: this.mPosPrev.y * (1 - w) + this.mPos.y * w
-        };
         this.mPos = {x: pos.x, y: pos.y};
     };
     let updateInteractMode = (e) => {
@@ -114,7 +111,7 @@ function setup() {
     app.stage.addChild(this.fluidGraphics);
 }
 
-// Lattice vectors
+// Lattice vectors TODO: find a better place for these
 let lv = [[0, 0], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
 
 function update() {
@@ -122,6 +119,12 @@ function update() {
     let delta = now - this.lastFrameTime;
 
     // User interaction
+    let w = 0.1;
+    this.mPosPrev = {
+        x: this.mPosPrev.x * (1 - w) + this.mPos.x * w,
+        y: this.mPosPrev.y * (1 - w) + this.mPos.y * w
+    };
+
     let mx = Math.floor(this.mPos.x);
     let my = Math.floor(this.mPos.y);
     if (this.drawing && !(mx < 0 || mx >= this.fluidGrid.width || my < 0 || my >= this.fluidGrid.height)) {
@@ -133,9 +136,21 @@ function update() {
                 this.fluidGrid.setObst(mx, my, 0);
                 break;
             case "drag":
-                let dr = scale(norm([this.mPos.x - this.mPosPrev.x, this.mPos.y - this.mPosPrev.y]), this.deltaU);
-                for (let i = 0; i < 9; i++)
-                    this.fluidGrid.df[(mx + my * this.fluidGrid.width) * 9 + i] += dot(lv[i], dr);
+                // We may want to replace this with a function inside the simulator
+                // It's weird to need to directly modify DFs
+                let dMPos = [(this.mPos.x - this.mPosPrev.x) / this.fluidGrid.width, (this.mPos.y - this.mPosPrev.y) / this.fluidGrid.width];
+                let d = this.fluidGrid.rho(mx, my) * this.deltaU * (Math.sqrt(dot(dMPos, dMPos)) + 0.1) * this.speedSound;
+                let dr = scale(norm(dMPos), d);
+                let flow = 0;
+                for (let i = 1; i < 9; i++) {
+                    let val;
+                    if (dot(dMPos, dMPos) > 0.0005)
+                        val = Math.max(dot(dr, lv[i]) / dot(lv[i], lv[i]), 0);
+                    else val = d;
+                    this.fluidGrid.df[(mx + my * this.fluidGrid.width) * 9 + i] += val;
+                    flow += val;
+                }
+                this.fluidGrid.df[(mx + my * this.fluidGrid.width) * 9] -= flow;
                 break;
             default:
                 break;
@@ -144,21 +159,27 @@ function update() {
 
     // Run simulation
     let startTime = Date.now();
-    // let steps = Math.floor(); // TODO
-    this.fluidGrid.simulate(1);
+    this.stepsToSimulate += this.speedSound * this.fluidGrid.width * (delta / 1000.0);
+    let steps = Math.min(Math.floor(this.stepsToSimulate), 3);
+    if (steps > 0) {
+        this.fluidGrid.simulate(steps);
+        this.stepsToSimulate -= steps;
+    }
     this.simulationTime[this.frame % 60] = Date.now() - startTime;
 
     // Draw graphics
     startTime = Date.now();
-    drawSimulation();
+    if (steps > 0)
+        drawSimulation();
     this.renderTime[this.frame % 60] = Date.now() - startTime;
 
     // Performance stats
-    if (this.frame % 60 === 0 || sum(this.simulationTime) > 1000) {
+    if (this.frame % 300 === 0) {
         let simMS = avg(this.simulationTime);
         let renMS = avg(this.renderTime);
         document.getElementById("simulationTime").innerText = "" + simMS.toFixed(1) + " ms/" + renMS.toFixed(1) + "ms";
     }
+    this.lastFrameTime = now;
     this.frame++;
 
     // Request next frame
