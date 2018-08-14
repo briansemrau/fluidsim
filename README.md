@@ -8,10 +8,9 @@ An interactive simulation using the Lattice Boltzmann method in Javascript.
 ### Future Plans
 
 - [x] Basic LBM simulation with boundaries
-- [x] Improve performance ~~using GPU acceleration~~ (GPU might conflict with adaptive topologies)
-~~- [ ] Implement Smagorinsky sub-grid model for turbulent flows (Thürey, Section 3.3)~~ (Not important)
-- [ ] Add gravity with user interactivity
+- [x] Improve performance
 - [ ] Implement free surface for water simulation (Thürey, Chapter 4)
+- [ ] Add gravity with user interactivity
 - [ ] Implement moving obstacle boundary conditions (Thürey, Chapter 5)
 - [ ] Explore adaptive topology for large scale simulations (Maybe Thürey, Chapter 7)
 
