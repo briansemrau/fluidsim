@@ -139,7 +139,7 @@ function update() {
                 // We may want to replace this with a function inside the simulator
                 // It's weird to need to directly modify DFs
                 let dMPos = [(this.mPos.x - this.mPosPrev.x) / this.fluidGrid.width, (this.mPos.y - this.mPosPrev.y) / this.fluidGrid.width];
-                let d = this.fluidGrid.rho(mx, my) * this.deltaU * (Math.sqrt(dot(dMPos, dMPos)) + 0.1) * this.speedSound;
+                let d = this.fluidGrid.rho(mx, my) * this.deltaU * (Math.sqrt(dot(dMPos, dMPos)) + 0.1) * this.speedSound * (this.fluidGrid.width / 50.);
                 let dr = scale(norm(dMPos), d);
                 let flow = 0;
                 for (let i = 1; i < 9; i++) {

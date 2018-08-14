@@ -1,13 +1,15 @@
 # Lattice Boltzmann Fluid Simulator
 
 An interactive simulation using the Lattice Boltzmann method in Javascript.
-[Play with the simulation!](https://briansemrau.github.io/fluidsim/bin)
+
+[Play with the gas simulation!](https://briansemrau.github.io/fluidsim/gas)<br>
+[(Water simulation soon to come)](https://briansemrau.github.io/fluidsim/water)
 
 ### Future Plans
 
 - [x] Basic LBM simulation with boundaries
 - [x] Improve performance ~~using GPU acceleration~~ (GPU might conflict with adaptive topologies)
-- ~~[ ] Implement Smagorinsky sub-grid model for turbulent flows (Thürey, Section 3.3)~~ (Deemed not important)
+~~- [ ] Implement Smagorinsky sub-grid model for turbulent flows (Thürey, Section 3.3)~~ (Not important)
 - [ ] Add gravity with user interactivity
 - [ ] Implement free surface for water simulation (Thürey, Chapter 4)
 - [ ] Implement moving obstacle boundary conditions (Thürey, Chapter 5)
