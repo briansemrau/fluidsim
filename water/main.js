@@ -1,4 +1,37 @@
-// main.js
+// water/main.js
+
+// PERFORMANCE TEST
+// let N = 5000;
+// let s = 128*2;
+// let testA = new Float32Array(s * s);
+//
+// let starttest = performance.now();
+// for (let n = 0; n < N; n++) {
+//     for (let y = 0; y < s; y++) {
+//         let yw = y * s;
+//         for (let x = 0; x < s; x++) {
+//             let i = x + yw;
+//             let a = testA[i];
+//             a++;
+//             a++;
+//             a++;
+//             a++;
+//             a++;
+//             testA[i] = a;
+//             // testA[i]++;
+//             // testA[i]++;
+//             // testA[i]++;
+//             // testA[i]++;
+//             // testA[i]++;
+//             // testA[i]++;
+//             // testA[i]++;
+//             // testA[i]++;
+//         }
+//     }
+// }
+// let endtest = performance.now();
+// console.log((endtest - starttest) / N + "ms");
+
 
 function setup() {
 
@@ -12,10 +45,10 @@ function setup() {
 
     let mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-    this.simulationTime = new Int32Array(60);
-    this.renderTime = new Int32Array(60);
+    this.simulationTime = new Float32Array(60);
+    this.renderTime = new Float32Array(60);
     this.frame = 0;
-    this.lastFrameTime = Date.now();
+    this.lastFrameTime = performance.now();
     this.stepsToSimulate = 0;
     this.speedSound = 2; // (m/s) Assume simulation width = 1 meter
 
@@ -25,12 +58,26 @@ function setup() {
     this.mPos = new PIXI.Point(0, 0);
     this.mPosPrev = new PIXI.Point(0, 0);
 
-    this.colorscale = 1.0 / this.deltaU;
+    this.colorscale = 1.0 / this.deltaU / 10;
     this.rendermode = document.querySelector('input[name="rendermode-radio"]:checked').value;
 
 
-    this.fluidGrid = new GasSim(Number(sizeRange.value), Number(sizeRange.value), Number(viscRange.value));
+    this.fluidGrid = new WaterSim(Number(sizeRange.value), Number(sizeRange.value), Number(viscRange.value));
     this.fluidGraphics = new PIXI.Graphics();
+
+    {
+        let xarr = [];
+        let yarr = [];
+        for (let x = 22; x <= 42; x++) {
+        // for (let x = 1; x <= 63; x++) {
+            for (let y = 22; y <= 42; y++) {
+            // for (let y = 1; y <= 63; y++) {
+                xarr.push(x);
+                yarr.push(y);
+            }
+        }
+        this.fluidGrid.fillall(xarr, yarr);
+    }
 
     // Hide certain controls
     if (mobile) {
@@ -79,7 +126,7 @@ function setup() {
     sizeRange.oninput = () => {
         let value = sizeRange.value;
         sizeLabel.innerText = "Grid size (" + value + "x" + value + ")";
-        this.fluidGrid = new GasSim(Number(value), Number(value), this.fluidGrid.viscosity());
+        this.fluidGrid = new WaterSim(Number(value), Number(value), this.fluidGrid.viscosity());
         resize();
     };
 
@@ -93,10 +140,12 @@ function setup() {
         if (e.data.buttons === 2) {
             let mx = Math.floor(this.mPos.x);
             let my = Math.floor(this.mPos.y);
-            this.interactMode = this.fluidGrid.obst(mx, my) === 0 ? "draw" : "erase";
+            this.interactMode = !this.fluidGrid.obst(mx, my) ? "draw" : "erase";
             this.drawing = true;
         } else if (e.data.buttons === 1) {
-            this.interactMode = "drag";
+            let mx = Math.floor(this.mPos.x);
+            let my = Math.floor(this.mPos.y);
+            this.interactMode = this.fluidGrid.isfluid(mx, my) ? "drag" : "fill";
             this.drawing = true;
         }
     };
@@ -111,11 +160,8 @@ function setup() {
     app.stage.addChild(this.fluidGraphics);
 }
 
-// Lattice vectors TODO: find a better place for these
-let lv = [[0, 0], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
-
 function update() {
-    let now = Date.now();
+    let now = performance.now();
     let delta = now - this.lastFrameTime;
 
     // User interaction
@@ -130,27 +176,22 @@ function update() {
     if (this.drawing && !(mx < 0 || mx >= this.fluidGrid.width || my < 0 || my >= this.fluidGrid.height)) {
         switch (this.interactMode) {
             case "draw":
-                this.fluidGrid.setObst(mx, my, 1);
+                this.fluidGrid.setObst(mx, my, true);
                 break;
             case "erase":
-                this.fluidGrid.setObst(mx, my, 0);
+                if (this.fluidGrid.isfluid(mx, my))
+                    this.fluidGrid.empty(mx, my);
+                else
+                    this.fluidGrid.setObst(mx, my, false);
+                break;
+            case "fill":
+                this.fluidGrid.fill(mx, my);
                 break;
             case "drag":
-                // We may want to replace this with a function inside the simulator
-                // It's weird to need to directly modify DFs
                 let dMPos = [(this.mPos.x - this.mPosPrev.x) / this.fluidGrid.width, (this.mPos.y - this.mPosPrev.y) / this.fluidGrid.width];
                 let d = this.fluidGrid.rho(mx, my) * this.deltaU * (Math.sqrt(dot(dMPos, dMPos)) + 0.1) * this.speedSound * (this.fluidGrid.width / 50.);
                 let dr = scale(norm(dMPos), d);
-                let flow = 0;
-                for (let i = 1; i < 9; i++) {
-                    let val;
-                    if (dot(dMPos, dMPos) > 0.0005)
-                        val = Math.max(dot(dr, lv[i]) / dot(lv[i], lv[i]), 0);
-                    else val = d;
-                    this.fluidGrid.df[(mx + my * this.fluidGrid.width) * 9 + i] += val;
-                    flow += val;
-                }
-                this.fluidGrid.df[(mx + my * this.fluidGrid.width) * 9] -= flow;
+                this.fluidGrid.drag(mx, my, dr);
                 break;
             default:
                 break;
@@ -158,20 +199,26 @@ function update() {
     }
 
     // Run simulation
-    let startTime = Date.now();
+    let startTime = performance.now();
     this.stepsToSimulate += this.speedSound * this.fluidGrid.width * (delta / 1000.0);
-    let steps = Math.min(Math.floor(this.stepsToSimulate), 3);
+    let steps = Math.min(Math.floor(this.stepsToSimulate), 20);
     if (steps > 0) {
         this.fluidGrid.simulate(steps);
         this.stepsToSimulate -= steps;
+        // DEBUG
+        // console.log(this.fluidGrid.n(mx, my)[0] + ", " + this.fluidGrid.n(mx, my)[1]);
+        // console.log(this.fluidGrid.u(mx, my)[0] + ", " + this.fluidGrid.u(mx, my)[1]);
+        // console.log(this.fluidGrid.eps(mx, my));
+        console.log(this.fluidGrid.mass(mx, my));
+        // console.log(this.fluidGrid.rho(mx, my));
     }
-    this.simulationTime[this.frame % 60] = Date.now() - startTime;
+    this.simulationTime[this.frame % 60] = performance.now() - startTime;
 
     // Draw graphics
-    startTime = Date.now();
-    if (steps > 0)
-        drawSimulation();
-    this.renderTime[this.frame % 60] = Date.now() - startTime;
+    startTime = performance.now();
+    // if (steps > 0)
+    drawSimulation();
+    this.renderTime[this.frame % 60] = performance.now() - startTime;
 
     // Performance stats
     if (this.frame % 300 === 0) {
@@ -219,11 +266,11 @@ function drawSimulation() {
                 this.fluidGraphics.beginFill(0xeeeeee);
                 this.fluidGraphics.drawRect(x, y, 1, 1);
                 this.fluidGraphics.endFill();
-            } else {
-                let value = getValue(x, y);
-                let bright = 0.9;
+            } else if (this.fluidGrid.isfluid(x, y)) {
+                let value = this.fluidGrid.mass(x, y) - 1 + getValue(x, y);
+                // if (this.fluidGrid.type(x, y) === 2) value = this.fluidGrid.interftype(x, y) - 1;
+                let color = rgb2hex(colormap(sigmoid(value), colors.jet));
 
-                let color = rgb2hex([0, value * (1 + bright) + bright, -value * (1 + bright) + bright]);
                 this.fluidGraphics.beginFill(color);
                 this.fluidGraphics.drawRect(x, y, 1, 1);
                 this.fluidGraphics.endFill();

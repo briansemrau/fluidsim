@@ -1,7 +1,11 @@
-// utils.js
+// mathutils.js
 
 function dot(a, b) {
     return a[0] * b[0] + a[1] * b[1];
+}
+
+function len(vec) {
+    return Math.sqrt(dot(vec, vec));
 }
 
 function sum(arr) {
@@ -31,6 +35,10 @@ function clamp(value, low, high) {
     return value;
 }
 
-function rbg2hex(rgb) {
+function rgb2hex(rgb) {
     return PIXI.utils.rgb2hex([clamp(rgb[0], 0, 1), clamp(rgb[1], 0, 1), clamp(rgb[2], 0, 1)]);
+}
+
+function sigmoid(value, aggression = 1) {
+    return 0.5 + 0.5 * Math.tanh(value * aggression);
 }

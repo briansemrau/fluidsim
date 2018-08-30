@@ -1,8 +1,8 @@
-// fluidsim.js
+// gasSim.js
 
 // Lots of credit to this code can be given to Dan Schroeder (http://physics.weber.edu/schroeder/fluids/)
 
-function FluidSim(width, height, viscosity, density = 1) {
+function GasSim(width, height, viscosity, density = 1) {
 
     this.width = width;
     this.height = height;

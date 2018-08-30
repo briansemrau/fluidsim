@@ -2,8 +2,8 @@
 
 An interactive simulation using the Lattice Boltzmann method in Javascript.
 
-[Play with the gas simulation!](https://briansemrau.github.io/fluidsim/gas)<br>
-[(Water simulation soon to come)](https://briansemrau.github.io/fluidsim/water)
+[Play with the water simulation here (broken but still pretty)](https://briansemrau.github.io/fluidsim/water)
+[Play with the gas simulation here](https://briansemrau.github.io/fluidsim/gas)<br>
 
 ### Future Plans
 

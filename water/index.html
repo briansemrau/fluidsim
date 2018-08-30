@@ -4,18 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>LBM Fluid Sim</title>
+    <title>LBM Water Sim</title>
     <link rel="icon" href="../bin/favicon.ico">
     <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 
 <script src="../lib/pixi.min.js"></script>
 <script src="mathutils.js"></script>
-<script src="gasSim.js"></script>
+<script src="../bin/colormap.js"></script>
+<script src="waterSim.js"></script>
 
 <body>
     <div class="vertical-box">
-        <div class="row header"><h1>LBM Fluid Simulation</h1></div>
+        <div class="row header"><h1>LBM Water Simulation</h1></div>
         <div class="row header" id="desktopcontrols">
             <div class="horizontal-box" style="padding-bottom: 5px">
                 <div style="padding-right: 25px">
@@ -36,8 +37,8 @@
                             <label for="interactmode1-button">Draw</label>
                             <input type="radio" id="interactmode2-button" name="interactmode-radio" value="erase">
                             <label for="interactmode2-button">Erase</label>
-                            <input type="radio" id="interactmode3-button" name="interactmode-radio" value="drag" checked>
-                            <label for="interactmode3-button">Drag fluid</label>
+                            <input type="radio" id="interactmode3-button" name="interactmode-radio" value="fill" checked>
+                            <label for="interactmode3-button">Add fluid</label>
                         </div>
                     </div>
                 </div>
@@ -45,11 +46,11 @@
                     <div>Color mode</div>
                     <div class="horizontal-box">
                         <div class="radiogroup">
-                            <input type="radio" id="drawdensity-button" name="rendermode-radio" value="density" checked>
+                            <input type="radio" id="drawdensity-button" name="rendermode-radio" value="density">
                             <label for="drawdensity-button">Density</label>
                             <input type="radio" id="drawcurl-button" name="rendermode-radio" value="curl">
                             <label for="drawcurl-button">Curl</label>
-                            <input type="radio" id="drawspeed-button" name="rendermode-radio" value="speed">
+                            <input type="radio" id="drawspeed-button" name="rendermode-radio" value="speed" checked>
                             <label for="drawspeed-button">Speed</label>
                         </div>
                     </div>
@@ -60,7 +61,7 @@
             <div class="horizontal-box">
                 <div class="slider-box">
                     <div><label for="visc-range" id="visc-label">Viscosity (0.020)</label></div>
-                    <div><input type="range" min="0.005" max="0.15" step="0.005" value="0.02" class="slider"
+                    <div><input type="range" min="0.0005" max="0.15" step="0.0005" value="0.005" class="slider"
                                 id="visc-range">
                     </div>
                 </div>
